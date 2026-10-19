@@ -1,6 +1,7 @@
 import os
 
 import joblib
+import pandas as pd  # ⭐ 新增：导入 pandas
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -24,6 +25,7 @@ class PatientData(BaseModel):
 
 @app.get("/")
 def read_root(request: Request):
+    # 注意这里使用的是新版 FastAPI 的语法
     return templates.TemplateResponse(request=request, name="index.html")
 
 
@@ -32,7 +34,12 @@ def predict(data: PatientData):
     if model is None:
         return {"error": "Model not found"}
 
-    features = [[data.age, data.resting_bp, data.cholesterol]]
+    # ⭐ 修改点：使用 pandas DataFrame 包装数据，并带上列名
+    features = pd.DataFrame(
+        [[data.age, data.resting_bp, data.cholesterol]],
+        columns=["age", "resting_bp", "cholesterol"],
+    )
+
     prediction = int(model.predict(features)[0])
     prob = float(model.predict_proba(features)[0][1])
 
