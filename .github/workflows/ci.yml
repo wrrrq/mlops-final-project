@@ -20,7 +20,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt ruff pytest
+        run: pip install -r requirements.txt ruff pytest black
+      
+      - name: Format Check with Black
+        run: black --check .
 
       - name: Lint with Ruff  # 代码规范检查
         run: ruff check .
@@ -35,11 +38,14 @@ jobs:
   cd-staging:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
+    # 告诉 GitHub 去 staging 房间拿密码
+    environment: staging 
     steps:
       - uses: actions/checkout@v4
 
       - name: Inject Staging Env
-        run: echo "${{ secrets.STAGING_ENV }}" > .env
+        #密码的名字叫 ENV_FILE
+        run: echo "${{ secrets.ENV_FILE }}" > .env
 
       - name: Build Staging Image
         run: docker build -t heartguard:staging .
@@ -48,11 +54,14 @@ jobs:
   cd-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # 告诉 GitHub 去 production 房间拿密码
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
       - name: Inject Prod Env
-        run: echo "${{ secrets.PROD_ENV }}" > .env
+        # 👇 密码的名字同样叫 ENV_FILE
+        run: echo "${{ secrets.ENV_FILE }}" > .env
 
       - name: Build Prod Image
         run: docker build -t heartguard:prod .
