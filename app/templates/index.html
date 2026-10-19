@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HeartGuard AI</title>
+</head>
+<body style="font-family: Arial; padding: 40px; text-align: center;">
+    <h1>HeartGuard 心血管风险预测系统</h1>
+    <form id="form">
+        <label>年龄: <input type="number" id="age" value="55" required></label><br><br>
+        <label>静息血压: <input type="number" id="bp" value="130" required></label><br><br>
+        <label>胆固醇: <input type="number" id="chol" value="250" required></label><br><br>
+        <button type="submit">开始预测</button>
+    </form>
+    <h2 id="result" style="color: #d9534f; margin-top: 20px;"></h2>
+
+    <script>
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    age: parseInt(document.getElementById('age').value),
+                    resting_bp: parseInt(document.getElementById('bp').value),
+                    cholesterol: parseInt(document.getElementById('chol').value)
+                })
+            });
+            const data = await res.json();
+            document.getElementById('result').innerText = 
+                `预测结果: ${data.prediction} (风险概率: ${(data.probability * 100).toFixed(1)}%)`;
+        });
+    </script>
+</body>
+</html>

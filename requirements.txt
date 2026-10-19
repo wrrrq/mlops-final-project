@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+pydantic
+scikit-learn
+joblib
+pytest
+httpx
+ruff
