@@ -1,32 +1,20 @@
 # HeartGuard 部署流水线说明文档
 
-本文档详细说明了 HeartGuard 项目如何通过 GitHub Actions 实现自动化部署与镜像构建。
+这篇文档主要记录一下我们这个项目是怎么做环境隔离和安全部署的。
 
 # 环境变量与安全（GitHub Secrets）
-为了保证生产安全，我们不将任何数据库密码或密钥以明文形式写在代码中。我们在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中配置了以下环境变量：
-- `STAGING_ENV`: 包含 staging 环境所需的配置（如端口号、调试模式等）。
-- `PROD_ENV`: 包含生产环境所需的配置（如连接池大小、生产 API 密钥等）。
+在 GitHub 仓库设置里，我们建了两个环境：`staging` 和 `production`。不管在哪个环境，密码的变量名我们都统一叫 `ENV_FILE`。但是在 `staging` 环境里，这个密码是测试用的假数据；而在 `production` 环境里，它才是真实的生产配置。这样哪怕两边配置完全不同，我们的代码也一行都不用改！
 
-在流水线运行到对应的部署阶段时，GitHub Actions 会动态读取这些 Secrets，并将它们写入构建环境中的 `.env` 文件。
+# 部署流水线是怎么跑起来的？
 
-# CD（持续交付）触发流程
- 1. Staging 环境构建
-- 触发条件：当代码成功合并到 `staging` 分支时触发。
-- 流水线动作：
-  1. 检出最新代码。
-  2. 使用 `${{ secrets.STAGING_ENV }}` 生成 staging 专属的 `.env` 文件。
-  3. 执行 `docker build -t heartguard:staging .` 构建预发布镜像。
-- 目的：供团队或内测人员进行最终验证。
+我们在 `.github/workflows/ci.yml` 里写好了触发规则：
 
-# 2. Production 环境构建
-- 触发条件：当代码从 `staging` 分支通过 PR 合并到 `main` 分支时触发。
-- 流水线动作：
-  1. 检出最新代码。
-  2. 使用 `${{ secrets.PROD_ENV }}` 生成生产专属的 `.env` 文件。
-  3. 执行 `docker build -t heartguard:prod .` 构建最终生产镜像。
-- 目的：生成最终的交付产物，随时可以推送到云服务器或 K8s 集群。
+1. Staging 预发布部署
+   - 当代码合入 `staging` 分支时，流水线里的 `cd-staging` 任务就会被激活。
+   - 它会自动去 GitHub 拿 `staging` 环境的 `ENV_FILE` 密码，在服务器上生成一个 `.env` 文件。
+   - 然后执行 `docker build -t heartguard:staging .`，把代码打成一个测试版镜像。
 
-## 容错与质量保障
-- 流水线配置了严格的依赖关系。如果 CI 阶段的测试（Pytest）或代码规范检查（Ruff）未通过，CD 阶段将自动终止，防止缺陷代码被构建成镜像。
-- 镜像统一基于 `python:3.12-slim` 构建，并排除了 `.git`、`.venv` 等冗余文件，确保镜像轻量且安全。
-
+2. Production 生产部署
+   - 当我们测试没问题，把代码合入 `main` 分支时，`cd-production` 任务启动。
+   - 同样的配方，它去拿 `production` 环境的密码生成 `.env`。
+   - 然后打包出 `heartguard:prod` 镜像。这就是最终要交付的成品了。
