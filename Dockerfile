@@ -10,8 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 拷贝应用代码和模型
 COPY app/ ./app/
-# 假设模型放在 ml/ 目录下，如果你同学A把模型放在了 app/ 目录下，就只拷 app/
-# COPY ml/model.pkl ./ml/model.pkl  (如果模型在外部需要这样拷贝，具体看同学A的安排)
+
 
 # 暴露 8000 端口（FastAPI 的默认端口）
 EXPOSE 8000
